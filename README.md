@@ -14,7 +14,4 @@ I want to board a train from London to France. The train ticket will cost $20.
   - Price paid ($20)
 - Upon purchase, the user is allocated a seat in the train.
 - The train has two sections: Section A and Section B.
-- Each section can accommodate up to 20 passengers.
 
-### Screenshots:
-- Todo (to be included)
