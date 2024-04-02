@@ -17,4 +17,4 @@ I want to board a train from London to France. The train ticket will cost $20.
 - Each section can accommodate up to 20 passengers.
 
 ### Screenshots:
-    Todo (to be included)
+- Todo (to be included)
