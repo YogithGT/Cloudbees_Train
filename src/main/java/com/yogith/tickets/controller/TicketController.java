@@ -1,67 +1,109 @@
 package com.yogith.tickets.controller;
 
+// models and data transfer object imports
+
+import com.yogith.tickets.dto.TicketUpdateRequest;
+import com.yogith.tickets.model.Ticket;
+import com.yogith.tickets.model.Train;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
 import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.yogith.tickets.entity.Receipt;
-import com.yogith.tickets.entity.TicketPurchaseRequest;
-import com.yogith.tickets.entity.User;
-import com.yogith.tickets.service.ReceiptService;
-import com.yogith.tickets.service.TicketPurchaseService;
-import com.yogith.tickets.service.UserService;
 
 @RestController
 @RequestMapping("/train")
 public class TicketController {
-	@GetMapping("/healthcheck")
-	public String healthCheck() {
-		return "Health Check OK";
-	}
-	@Autowired
-	private TicketPurchaseService ticketPurchaseService;
-	@Autowired
-	private ReceiptService receiptService;
-	@Autowired
-	private UserService userService;
 
-	@PostMapping("/purchase")
-	public Receipt submitTicketPurchase(@RequestBody TicketPurchaseRequest request) {
-		return ticketPurchaseService.submitTicketPurchase(request);
-	}
+    private final Map<String, Ticket> ticketStore = new HashMap<>();
+    // All the ticketRelated details are persisted in ticketStore; email unique for every user, I decided to map email to ticketObj
+    private final Train train = new Train("SampleTrain", 2);
 
-	@GetMapping("/receipt/{userId}")
-	public String viewReceipt(@PathVariable Long userId) {
-		Receipt receipt = receiptService.getReceiptByUserId(userId);
-		if (receipt != null) {
-			return receipt.generateReceipt();
-		} else {
-			return "Receipt not found for user ID: " + userId;
-		}
-	}
+    @GetMapping("/healthcheck")
+    public String healthCheck() {
+        return "Health Check OK";
+    }
 
-	@GetMapping("/users/seats")
-	public Map<User, String> viewUsersAndSeats() {
-		// Assuming you have a service to fetch users and their allocated seats
-		return userService.getUsersAndSeats();
-	}
+    @PostMapping
+    public ResponseEntity<String> purchaseTicket(@RequestBody Ticket ticket) {
+        String userEmail = ticket.getUser().getEmail();
+        if (ticketStore.containsKey(userEmail)) {
+            return ResponseEntity.badRequest().body("User with email " + userEmail + " already has a ticket.");
+        }
+        if (train.isFull()) {
+            return ResponseEntity.badRequest().body("Train capacity is full. Cannot allocate more seats.");
+        }
+        String seatSection = train.allocateSeat();
+        ticket.setSeatSection(seatSection);
+        ticketStore.put(ticket.getUser().getEmail(), ticket);
+        return ResponseEntity.ok("Ticket purchased successfully! Your Ticket ID:  " + ticket.getTicketId());
+    }
 
-	@DeleteMapping("/user/{userId}")
-	public String removeUser(@PathVariable Long userId) {
-		// Assuming you have a service to remove a user by user ID
-		boolean removed = userService.removeUser(userId);
-		if (removed) {
-			return "User with ID: " + userId + " removed successfully.";
-		} else {
-			return "User with ID: " + userId + " not found.";
-		}
-	}
+    @GetMapping("/fetch/{userEmail}")
+    public ResponseEntity<?> getTicketDetails(@PathVariable String userEmail) {
+        Ticket ticket = ticketStore.get(userEmail);
+        if (ticket != null)
+            return ResponseEntity.ok(ticket);
+        return null;
+    }
+
+   @GetMapping("/passengers")
+   public Map<String, String> getUsersAndSeats() {
+       Map<String, String> userSeats = new HashMap<>();
+       for (Map.Entry<String, Ticket> entry : ticketStore.entrySet()) {
+           userSeats.put(entry.getKey(), entry.getValue().getSeatSection());
+       }
+       return userSeats;
+   }
+
+    @DeleteMapping("/cancel/{userEmail}")
+    public ResponseEntity<String> removeUserFromTrain(@PathVariable String userEmail) {
+        if (ticketStore.containsKey(userEmail)) {
+            Ticket removedTicket = ticketStore.remove(userEmail);
+            // Decrement the section count based on the removed ticket's seat section
+            train.decrementSectionCount(removedTicket.getSeatSection());
+            return ResponseEntity.ok("User removed from the train");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("User not found for cancellation with email: " + userEmail);
+        }
+    }
+
+    @PatchMapping("/update")
+    public ResponseEntity<String> modifyUserSeat(@RequestBody TicketUpdateRequest updateRequest) {
+        String userEmail = updateRequest.getUserEmail();
+
+        if (!ticketStore.containsKey(userEmail)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("User not found for seat modification with email: " + userEmail);
+        }
+
+        Ticket existingTicket = ticketStore.get(userEmail);
+
+        // Update seat section if requested
+        if (updateRequest.getSwitchSeatSection()) {
+            // Check train capacity for the new section
+            String requestedSection = existingTicket.getSeatSection().equals("Load A") ? "Load B" : "Load A";
+
+            // Check if the requested section is full
+            if (train.isSectionFull(requestedSection)) {
+                return ResponseEntity.badRequest().body(requestedSection + " is full. Cannot switch seats.");
+            }
+            // Update the seat section
+            train.incrementSectionCount(requestedSection);
+            train.decrementSectionCount(existingTicket.getSeatSection());
+            existingTicket.setSeatSection(requestedSection);
+        }
+        if (updateRequest.getFrom() != null) {
+            existingTicket.setFrom(updateRequest.getFrom());
+        }
+        if (updateRequest.getTo() != null) {
+            existingTicket.setTo(updateRequest.getTo());
+        }
+
+        return ResponseEntity.ok("User's seat modified successfully!");
+    }
 
 }
+
