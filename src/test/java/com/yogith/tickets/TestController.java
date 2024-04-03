@@ -31,7 +31,7 @@ public class TestController {
     @Test
     void testPurchaseTicket() {
         User user = new User("John", "Doe", "john.doe@example.com");
-        Ticket ticket = new Ticket("A", "B", user, 50.0);
+        Ticket ticket = new Ticket("London", "France", user, 20.0);
 
         ResponseEntity<String> response = ticketController.purchaseTicket(ticket);
 
@@ -43,8 +43,8 @@ public class TestController {
     @Test
     void testDuplicatePurchaseTicket() {
         User user = new User("John", "Doe", "john.doe@example.com");
-        Ticket ticket1 = new Ticket("A", "B", user, 50.0);
-        Ticket ticket2 = new Ticket("C", "D", user, 50.0);
+        Ticket ticket1 = new Ticket("London", "France", user, 20.0);
+        Ticket ticket2 = new Ticket("London", "France", user, 20.0);
 
         ticketController.purchaseTicket(ticket1);
         ResponseEntity<String> response = ticketController.purchaseTicket(ticket2);
@@ -56,7 +56,7 @@ public class TestController {
     @Test
     void testGetTicketDetails() {
         User user = new User("John", "Doe", "john.doe@example.com");
-        Ticket ticket = new Ticket("A", "B", user, 50.0);
+        Ticket ticket = new Ticket("London", "France", user, 20.0);
 
         ticketController.purchaseTicket(ticket);
         ResponseEntity<?> response = ticketController.getTicketDetails(user.getEmail());
@@ -68,7 +68,7 @@ public class TestController {
     @Test
     void testRemoveUserFromTrain() {
         User user = new User("John", "Doe", "john.doe@example.com");
-        Ticket ticket = new Ticket("A", "B", user, 50.0);
+        Ticket ticket = new Ticket("London", "France", user, 20.0);
 
         ticketController.purchaseTicket(ticket);
         ResponseEntity<String> response = ticketController.removeUserFromTrain(user.getEmail());
@@ -80,7 +80,7 @@ public class TestController {
     @Test
     void testModifyUserSeat() {
         User user = new User("John", "Doe", "john.doe@example.com");
-        Ticket ticket = new Ticket("A", "B", user, 50.0);
+        Ticket ticket = new Ticket("London", "France", user, 20.0);
 
         ticketController.purchaseTicket(ticket);
         TicketUpdateRequest updateRequest = new TicketUpdateRequest();
@@ -98,8 +98,8 @@ public class TestController {
         User user1 = new User("John", "Doe", "john.doe@example.com");
         User user2 = new User("Jane", "Doe", "jane.doe@example.com");
 
-        Ticket ticket1 = new Ticket("A", "B", user1, 50.0);
-        Ticket ticket2 = new Ticket("C", "D", user2, 50.0);
+        Ticket ticket1 = new Ticket("London", "France", user1, 20.0);
+        Ticket ticket2 = new Ticket("London", "France", user2, 20.0);
 
         ticketController.purchaseTicket(ticket1);
         ticketController.purchaseTicket(ticket2);
